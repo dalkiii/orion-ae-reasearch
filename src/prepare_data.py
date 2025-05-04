@@ -123,11 +123,8 @@ def process_file(filepath, target_sensor, fixed_length, series_name, tightening_
 if __name__ == "__main__":
     # 📌 전체 데이터가 있는 루트 디렉토리
     root_dir = "./data"
-    output_dir_single = "./data/resized"  # 개별 센서별 저장
-    output_dir_fusion = "./data/resized"  # 융합 데이터 저장
-
+    output_dir_single = f"./data/resized"  # 개별 센서별 저장
     os.makedirs(output_dir_single, exist_ok=True)
-    os.makedirs(output_dir_fusion, exist_ok=True)
 
     # 📌 FIXED_LENGTH 설정을 위한 주기 길이 데이터 수집
     # (모든 measurementSeries_* 폴더에서 cycle_lengths를 수집)
@@ -157,8 +154,8 @@ if __name__ == "__main__":
     # measurementSeries_* 폴더에 대해 처리
     results = []
     # 처리할 시리즈 목록 (필요에 따라 확장/수정 가능)
-    # target_series_list = ["measurementSeries_B", "measurementSeries_C", "measurementSeries_D", "measurementSeries_E", "measurementSeries_F"]
-    target_series_list = ["measurementSeries_B"]
+    target_series_list = ["measurementSeries_B", "measurementSeries_C", "measurementSeries_D", "measurementSeries_E", "measurementSeries_F"]
+    # target_series_list = ["measurementSeries_B"]
 
     for target_sensor in ["A", "B", "C"]:
         for target_series in target_series_list:
