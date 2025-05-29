@@ -1,0 +1,38 @@
+experiment:
+  experiment_name: "acoustic_emission_classification"
+  num_runs: 5
+  seed: 42
+  results_dir: "./results"
+  checkpoint_dir: "./ckpt"
+
+data:
+  root_dir: "/root/test/output_dir_single_ver6_0221_sensorB_224size/measurementSeries_B"
+  imbalance_factors:
+    "05cNm": 0.005
+    "10cNm": 0.005
+    "20cNm": 0.005
+    "30cNm": 1.0
+    "40cNm": 1.0
+    "50cNm": 1.0
+    "60cNm": 1.0
+  test_samples_per_class: 100
+  train_val_split: 0.8
+  batch_size: 32
+  num_workers: 4
+
+model:
+  model_name: "googlenet"
+  num_classes: 7
+  pretrained: true
+  dropout: 0.2
+
+training:
+  num_epochs: 10
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  optimizer: "adamw"
+  checkpoint_path: "./ckpt/best_model.pth"
+  model_name: "googlenet"
+  num_classes: 7
+  pretrained: true
+  dropout: 0.2

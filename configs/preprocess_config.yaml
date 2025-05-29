@@ -1,0 +1,33 @@
+preprocessing:
+  # Target sensors to process
+  target_sensors: ["A", "B", "C"]
+  
+  # Target measurement series to process
+  target_series:
+    - "measurementSeries_B"
+    - "measurementSeries_C"
+    - "measurementSeries_D"
+    - "measurementSeries_E"
+    - "measurementSeries_F"
+  
+  # Output image dimensions
+  target_image_shape: [224, 224]
+  
+  # Signal processing parameters
+  median_filter_size: 5
+  zero_crossing_threshold: 0.01
+  outlier_threshold: 10000
+  
+  # CWT parameters
+  cwt_scales: [1, 128]
+  morlet_w: 6.0
+  
+  # Normalization parameters
+  clip_range: [-3.0, 3.0]
+
+paths:
+  # Input directory containing .mat files
+  root_dir: "./data"
+  
+  # Output directory for processed .npy files
+  output_dir: "./data/resized"
