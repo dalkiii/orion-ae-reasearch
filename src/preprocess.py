@@ -1,9 +1,8 @@
 import numpy as np
 import os
 import scipy.io
-from pywt import cwt
 from scipy.ndimage import median_filter
-from scipy.signal import morlet2, resample
+from scipy.signal import cwt, morlet2, resample
 from skimage.transform import resize
 from typing import List, Dict, Tuple, Optional, Any
 from dataclasses import dataclass
