@@ -44,7 +44,7 @@ def validate_config(config: dict) -> None:
     
     # Check if data directory exists
     if not os.path.exists(config["data_root"]):
-        raise ValueError(f"Data directory does not exist: {config["data_root"]}")
+        raise ValueError(f"Data directory does not exist: {config['data_root']}")
 
 
 def print_config_summary(config: dict) -> None:
@@ -52,16 +52,16 @@ def print_config_summary(config: dict) -> None:
     print("="*60)
     print("GAN TRAINING CONFIGURATION")
     print("="*60)
-    print(f"Data root: {config.get("data_root", "N/A")}")
-    print(f"Checkpoint directory: {config.get("checkpoint_dir", "N/A")}")
-    print(f"Results directory: {config.get("results_dir", "N/A")}")
-    print(f"Batch size: {config.get("batch_size", 64)}")
-    print(f"Number of epochs: {config.get("num_epochs", 2000)}")
-    print(f"Latent dimension: {config.get("latent_dim", 200)}")
-    print(f"Number of classes: {config.get("num_classes", 7)}")
-    print(f"Generator LR: {config.get("g_lr", 1e-5)}")
-    print(f"Discriminator LR: {config.get("d_lr", 1e-6)}")
-    print(f"Lambda GP: {config.get("lambda_gp", 15.0)}")
+    print(f"Data root: {config.get('data_root', 'N/A')}")
+    print(f"Checkpoint directory: {config.get('checkpoint_dir', 'N/A')}")
+    print(f"Results directory: {config.get('results_dir', 'N/A')}")
+    print(f"Batch size: {config.get('batch_size', 64)}")
+    print(f"Number of epochs: {config.get('num_epochs', 2000)}")
+    print(f"Latent dimension: {config.get('latent_dim', 200)}")
+    print(f"Number of classes: {config.get('num_classes', 7)}")
+    print(f"Generator LR: {config.get('g_lr', 1e-5)}")
+    print(f"Discriminator LR: {config.get('d_lr', 1e-6)}")
+    print(f"Lambda GP: {config.get('lambda_gp', 15.0)}")
     
     # Print imbalance ratios
     imbalance_ratios = config.get("imbalance_ratios", {})
@@ -230,8 +230,8 @@ def main():
         print("\n" + "="*60)
         print("GAN TRAINING COMPLETED!")
         print("="*60)
-        print(f"Checkpoints saved to: {config["checkpoint_dir"]}")
-        print(f"Results saved to: {config["results_dir"]}")
+        print(f"Checkpoints saved to: {config['checkpoint_dir']}")
+        print(f"Results saved to: {config['results_dir']}")
         
         # Optionally generate data after training
         generate_response = input("\nGenerate augmented data now? (y/N): ")

@@ -5,13 +5,13 @@ gan:
   d_model_dim: 128
   
   # Training parameters
-  batch_size: 64
+  batch_size: 8
   num_epochs: 2000
   d_updates: 1
   
   # Optimizer parameters
-  g_lr: 1e-5      # Generator learning rate
-  d_lr: 1e-6      # Discriminator learning rate
+  g_lr: 0.00001      # Generator learning rate
+  d_lr: 0.000001      # Discriminator learning rate
   beta1: 0.5      # Adam beta1
   beta2: 0.9      # Adam beta2
   
@@ -37,7 +37,7 @@ gan:
 
 paths:
   # Input data directory
-  data_root: "/root/test/output_dir_single_ver6_0221_sensorB_224size/measurementSeries_D"
+  data_root: "./data/resized/measurementSeries_B"
   
   # Output directories
   checkpoint_dir: "./checkpoints/gan"
