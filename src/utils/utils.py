@@ -34,6 +34,34 @@ def create_directories(*dirs: str) -> None:
         os.makedirs(directory, exist_ok=True)
 
 
+def save_results_json(results: Dict[str, Any], filepath: str) -> None:
+    """
+    Save results dictionary to JSON file
+    
+    Args:
+        results: Results dictionary
+        filepath: Path to save JSON file
+    """
+    # Convert numpy arrays to lists for JSON serialization
+    serializable_results = {}
+    for key, value in results.items():
+        if isinstance(value, np.ndarray):
+            serializable_results[key] = value.tolist()
+        elif isinstance(value, dict):
+            serializable_results[key] = {
+                k: v.tolist() if isinstance(v, np.ndarray) else v
+                for k, v in value.items()
+            }
+        else:
+            serializable_results[key] = value
+    
+    # Create directory if it doesn't exist
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+    
+    with open(filepath, 'w') as f:
+        json.dump(serializable_results, f, indent=2)
+
+
 def format_time(seconds: float) -> str:
     """
     Format time in seconds to human readable format
