@@ -6,7 +6,7 @@ experiment:
   checkpoint_dir: "./ckpt"
 
 data:
-  root_dir: "/root/test/output_dir_single_ver6_0221_sensorB_224size/measurementSeries_B"
+  root_dir: "./data/resized/measurementSeries_B"
   imbalance_factors:
     "05cNm": 0.005
     "10cNm": 0.005

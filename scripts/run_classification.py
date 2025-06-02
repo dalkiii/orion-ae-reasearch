@@ -191,7 +191,7 @@ def main():
         config = ConfigManager.create_default_config()
         
         # Update data root directory (you need to change this)
-        config.data.root_dir = "/root/test/output_dir_single_ver6_0221_sensorB_224size/measurementSeries_B"
+        config.data.root_dir = "./data/resized/measurementSeries_B"
         
         # Save default configuration
         os.makedirs("configs", exist_ok=True)
