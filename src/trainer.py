@@ -38,7 +38,6 @@ class ClassifierTrainer:
             model_name=config.model_name,
             num_classes=config.num_classes,
             pretrained=config.pretrained,
-            dropout=config.dropout
         ).to(self.device)
         
         # Initialize optimizer and loss function
