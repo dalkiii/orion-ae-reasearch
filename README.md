@@ -108,3 +108,40 @@ python experiments/run_classification.py
 
 # Results will be saved to ./results/
 ```
+
+#### Single GAN Checkpoint Evaluation
+
+```bash
+# Use a specific GAN checkpoint for data augmentation
+python experiments/run_classification.py \
+    --gan-checkpoint ./checkpoints/netG_epoch_150.pth
+
+# With custom augmentation strategy
+python experiments/run_classification.py \
+    --gan-checkpoint ./checkpoints/netG_epoch_150.pth \
+    --augmentation-strategy balance
+
+# Custom GAN parameters
+python experiments/run_classification.py \
+    --gan-checkpoint ./checkpoints/netG_epoch_150.pth \
+    --gan-latent-dim 256 \
+    --gan-d-model-dim 256 \
+    --augmentation-strategy oversample
+```
+
+#### Multiple GAN Checkpoint Evaluation
+
+Evaluate classification performance across different GAN training epochs to find the optimal checkpoint:
+
+```bash
+# Evaluate all checkpoints in a directory
+python experiments/run_classification.py \
+    --gan-checkpoint-dir ./checkpoints
+
+# Custom evaluation settings
+python experiments/run_classification.py \
+    --gan-checkpoint-dir ./checkpoints \
+    --checkpoint-interval 30 \
+    --num-runs 3 \
+    --results-dir ./results/gan_evaluation
+```

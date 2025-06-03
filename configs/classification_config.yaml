@@ -31,6 +31,16 @@ training:
   weight_decay: 0.0001
   optimizer: "adamw"
   checkpoint_path: "./ckpt/best_model.pth"
-  model_name: "googlenet"
+  # Removed duplicate model settings (they're already in model section)
+
+# Optional GAN augmentation settings (used only when --gan-checkpoint is provided)
+gan:
+  latent_dim: 200
   num_classes: 7
-  pretrained: true
+  d_model_dim: 128
+  augmentation_strategy: "balance"  # "balance" or "oversample"
+  
+# Optional checkpoint evaluation settings
+checkpoint_evaluation:
+  checkpoint_interval: 30
+  evaluation_results_dir: "./results/gan_evaluation"
