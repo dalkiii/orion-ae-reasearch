@@ -1,0 +1,58 @@
+gan:
+  # Model architecture parameters
+  latent_dim: 200
+  num_classes: 7
+  d_model_dim: 128
+
+paths:
+  # Checkpoint directory containing trained models
+  checkpoint_dir: "./checkpoints/gan"
+  
+  # Output directory for evaluation results
+  results_dir: "./results/gan/evaluation"
+
+evaluation:
+  # Number of samples per class to generate for analysis
+  num_samples_per_class: 100
+  
+  # Checkpoint interval to analyze (e.g., every 30 epochs)
+  checkpoint_interval: 30
+  
+  # t-SNE parameters
+  tsne_perplexity: 30
+  tsne_random_state: 42
+  
+  # Analysis options
+  analysis_options:
+    # Save individual t-SNE plots for each epoch
+    save_individual_epochs: true
+    
+    # Save t-SNE plots for key epochs (first, last, best)
+    save_key_epochs: true
+    
+    # Create detailed class-wise analysis
+    detailed_class_analysis: true
+    
+    # Generate comparison plots
+    create_comparison_plots: true
+    
+    # Save raw analysis data (for further processing)
+    save_raw_data: false
+
+experiment:
+  # Random seed for reproducibility
+  seed: 42
+  
+  # Logging configuration
+  log_level: "INFO"
+  
+  # Performance monitoring
+  monitor_memory: false
+  monitor_time: true
+
+# Optional: Quick analysis settings (for faster evaluation)
+quick_analysis:
+  num_samples_per_class: 50
+  checkpoint_interval: 60
+  tsne_perplexity: 20
+  save_individual_epochs: false

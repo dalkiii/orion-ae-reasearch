@@ -76,7 +76,29 @@ data/generated/
 └── ...
 ```
 
-### 4. Classification Training
+### 4. GAN Performance Evaluation
+
+Evaluate GAN quality and performance:
+
+```bash
+# Comprehensive analysis of all checkpoints
+python scripts/run_gan_evaluation.py
+
+# Quick analysis with fewer samples
+python scripts/run_gan_evaluation.py --quick
+
+# Analyze specific epochs only
+python scripts/run_gan_evaluation.py --epochs 300 600 900 1200
+
+# Custom analysis parameters
+python scripts/run_gan_evaluation.py \
+    --checkpoint-dir ./checkpoints/gan \
+    --results-dir ./results/gan_analysis \
+    --samples-per-class 200 \
+    --tsne-perplexity 50
+```
+
+### 5. Classification Training
 
 Run classification experiments:
 

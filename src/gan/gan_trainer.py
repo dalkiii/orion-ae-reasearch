@@ -16,18 +16,19 @@ import numpy as np
 
 from .models import (
     IMBSpecGANGenerator, 
-    IMBSpecGANDiscriminator, 
+    IMBSpecGANDiscriminator,
+    GANPerformanceAnalyzer, 
     sample_latent, 
     compute_gradient_penalty,
     initialize_weights
 )
 from .gan_dataset import create_gan_dataloader
 from ..utils.logger import Logger
-from ..utils.utils import set_seed, create_directories
+from ..utils.utils import create_directories
 
 
 class GANTrainer:
-    """Trainer for IMBSpecGAN"""
+    """GAN trainer with integrated performance analysis"""
     
     def __init__(self, config: Dict[str, Any], logger: Optional[Logger] = None):
         """
@@ -58,6 +59,10 @@ class GANTrainer:
         # Loss parameters
         self.lambda_gp = config.get('lambda_gp', 15.0)
         
+        # Analysis parameters
+        self.analysis_interval = config.get('analysis_interval', 100)
+        self.enable_analysis = config.get('enable_analysis', True)
+        
         # Paths
         self.data_root = config.get('data_root', '')
         self.checkpoint_dir = config.get('checkpoint_dir', './checkpoints')
@@ -69,11 +74,23 @@ class GANTrainer:
         # Initialize models
         self._initialize_models()
         
+        # Initialize performance analyzer
+        if self.enable_analysis:
+            self.performance_analyzer = GANPerformanceAnalyzer(
+                generator=self.generator,
+                checkpoint_dir=self.checkpoint_dir,
+                latent_dim=self.latent_dim,
+                num_classes=self.num_classes,
+                device=self.device
+            )
+        
         # Training history
         self.history = {
             'g_loss': [],
             'd_loss': [],
-            'epoch': []
+            'epoch': [],
+            'silhouette_scores': {},
+            'class_dispersions': {}
         }
     
     def _initialize_models(self) -> None:
@@ -267,6 +284,122 @@ class GANTrainer:
         
         return avg_d_loss, avg_g_loss
     
+    def analyze_performance(self, epoch: int) -> Dict[str, float]:
+        """
+        Analyze GAN performance at current epoch
+        
+        Args:
+            epoch: Current epoch
+            
+        Returns:
+            Dictionary of performance metrics
+        """
+        if not self.enable_analysis:
+            return {}
+        
+        try:
+            self.logger.info(f"Running performance analysis for epoch {epoch}...")
+            
+            # Generate samples for analysis
+            self.generator.eval()
+            epoch_images = []
+            epoch_labels = []
+            
+            num_samples_per_class = 50  # Reduced for faster analysis
+            
+            for class_idx in range(self.num_classes):
+                z = torch.randn(num_samples_per_class, self.latent_dim, device=self.device)
+                labels = torch.full((num_samples_per_class,), class_idx, device=self.device)
+                one_hot = torch.zeros(num_samples_per_class, self.num_classes, device=self.device)
+                one_hot.scatter_(1, labels.unsqueeze(1), 1)
+                latent_input = torch.cat([z, one_hot], dim=1)
+                
+                with torch.no_grad():
+                    fake_images = self.generator(latent_input)
+                    flattened_images = fake_images.view(fake_images.size(0), -1).cpu().numpy()
+                    epoch_images.append(flattened_images)
+                    epoch_labels.extend([class_idx] * num_samples_per_class)
+            
+            epoch_images = np.vstack(epoch_images)
+            epoch_labels = np.array(epoch_labels)
+            
+            # Apply t-SNE for quick analysis
+            from sklearn.manifold import TSNE
+            from sklearn.metrics import silhouette_score
+            
+            tsne = TSNE(n_components=2, random_state=42, perplexity=min(30, len(epoch_images)//4))
+            tsne_result = tsne.fit_transform(epoch_images)
+            
+            # Calculate silhouette score
+            if len(np.unique(epoch_labels)) > 1:
+                silhouette = silhouette_score(tsne_result, epoch_labels)
+            else:
+                silhouette = 0.0
+            
+            # Calculate class dispersion
+            dispersions = []
+            for class_idx in range(self.num_classes):
+                mask = epoch_labels == class_idx
+                if np.sum(mask) > 1:
+                    class_points = tsne_result[mask]
+                    center = np.mean(class_points, axis=0)
+                    distances = np.sqrt(np.sum((class_points - center)**2, axis=1))
+                    dispersion = np.mean(distances)
+                else:
+                    dispersion = 0.0
+                dispersions.append(dispersion)
+            
+            avg_dispersion = np.mean(dispersions)
+            
+            # Store results
+            self.history['silhouette_scores'][epoch] = silhouette
+            self.history['class_dispersions'][epoch] = dispersions
+            
+            self.logger.info(f"Epoch {epoch} - Silhouette Score: {silhouette:.4f}, Avg Dispersion: {avg_dispersion:.4f}")
+            
+            return {
+                'silhouette_score': silhouette,
+                'avg_dispersion': avg_dispersion,
+                'class_dispersions': dispersions
+            }
+            
+        except Exception as e:
+            self.logger.warning(f"Performance analysis failed for epoch {epoch}: {e}")
+            return {}
+    
+    def visualize_analysis_progress(self) -> None:
+        """Visualize analysis progress during training"""
+        if not self.history['silhouette_scores']:
+            return
+        
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
+        
+        # Silhouette scores
+        epochs = list(self.history['silhouette_scores'].keys())
+        scores = list(self.history['silhouette_scores'].values())
+        
+        ax1.plot(epochs, scores, 'o-', color='green', linewidth=2)
+        ax1.set_xlabel('Epoch')
+        ax1.set_ylabel('Silhouette Score')
+        ax1.set_title('Class Separation Quality')
+        ax1.grid(True, alpha=0.3)
+        
+        # Average class dispersion
+        if self.history['class_dispersions']:
+            avg_dispersions = [np.mean(disp) for disp in self.history['class_dispersions'].values()]
+            ax2.plot(epochs, avg_dispersions, 'o-', color='orange', linewidth=2)
+            ax2.set_xlabel('Epoch')
+            ax2.set_ylabel('Average Class Dispersion')
+            ax2.set_title('Intra-class Variance')
+            ax2.grid(True, alpha=0.3)
+        
+        plt.tight_layout()
+        
+        # Save plot
+        save_path = os.path.join(self.results_dir, "training_analysis.png")
+        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.close()
+    
     def generate_samples(self, num_samples: int = 8) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Generate sample images
@@ -316,7 +449,7 @@ class GANTrainer:
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.close()
         
-        self.logger.info(f"Visualization saved to {save_path}")
+        self.logger.info(f"Samples visualization saved to {save_path}")
     
     def save_checkpoint(self, epoch: int) -> None:
         """
@@ -345,7 +478,7 @@ class GANTrainer:
             'config': self.config
         }, state_path)
         
-        self.logger.info(f"Checkpoints saved: {gen_path}, {disc_path}, {state_path}")
+        self.logger.info(f"Checkpoints saved: {gen_path}, {disc_path}")
     
     def load_checkpoint(self) -> int:
         """
@@ -399,50 +532,70 @@ class GANTrainer:
         if not self.history['epoch']:
             return
         
-        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 5))
-        
+        fig, axes = plt.subplots(2, 2, figsize=(15, 10))
         epochs = self.history['epoch']
         
         # Loss curves
-        ax1.plot(epochs, self.history['d_loss'], label='Discriminator Loss', color='blue')
-        ax1.plot(epochs, self.history['g_loss'], label='Generator Loss', color='red')
-        ax1.set_xlabel('Epoch')
-        ax1.set_ylabel('Loss')
-        ax1.set_title('Training Losses')
-        ax1.legend()
-        ax1.grid(True, alpha=0.3)
+        axes[0, 0].plot(epochs, self.history['d_loss'], label='Discriminator Loss', color='blue')
+        axes[0, 0].plot(epochs, self.history['g_loss'], label='Generator Loss', color='red')
+        axes[0, 0].set_xlabel('Epoch')
+        axes[0, 0].set_ylabel('Loss')
+        axes[0, 0].set_title('Training Losses')
+        axes[0, 0].legend()
+        axes[0, 0].grid(True, alpha=0.3)
         
         # Loss ratio
         if len(self.history['d_loss']) > 0 and len(self.history['g_loss']) > 0:
             ratio = [g/d if d != 0 else 0 for g, d in zip(self.history['g_loss'], self.history['d_loss'])]
-            ax2.plot(epochs, ratio, label='G_loss / D_loss', color='green')
-            ax2.set_xlabel('Epoch')
-            ax2.set_ylabel('Loss Ratio')
-            ax2.set_title('Generator/Discriminator Loss Ratio')
-            ax2.legend()
-            ax2.grid(True, alpha=0.3)
+            axes[0, 1].plot(epochs, ratio, label='G_loss / D_loss', color='green')
+            axes[0, 1].set_xlabel('Epoch')
+            axes[0, 1].set_ylabel('Loss Ratio')
+            axes[0, 1].set_title('Generator/Discriminator Loss Ratio')
+            axes[0, 1].legend()
+            axes[0, 1].grid(True, alpha=0.3)
+        
+        # Silhouette scores
+        if self.history['silhouette_scores']:
+            sil_epochs = list(self.history['silhouette_scores'].keys())
+            sil_scores = list(self.history['silhouette_scores'].values())
+            axes[1, 0].plot(sil_epochs, sil_scores, 'o-', color='purple', linewidth=2)
+            axes[1, 0].set_xlabel('Epoch')
+            axes[1, 0].set_ylabel('Silhouette Score')
+            axes[1, 0].set_title('Class Separation Quality')
+            axes[1, 0].grid(True, alpha=0.3)
+        
+        # Average class dispersion
+        if self.history['class_dispersions']:
+            disp_epochs = list(self.history['class_dispersions'].keys())
+            avg_dispersions = [np.mean(disp) for disp in self.history['class_dispersions'].values()]
+            axes[1, 1].plot(disp_epochs, avg_dispersions, 'o-', color='orange', linewidth=2)
+            axes[1, 1].set_xlabel('Epoch')
+            axes[1, 1].set_ylabel('Average Dispersion')
+            axes[1, 1].set_title('Intra-class Variance')
+            axes[1, 1].grid(True, alpha=0.3)
         
         plt.tight_layout()
         
         # Save plot
-        save_path = os.path.join(self.results_dir, "training_curves.png")
+        save_path = os.path.join(self.results_dir, "enhanced_training_curves.png")
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.close()
         
-        self.logger.info(f"Training curves saved to {save_path}")
+        self.logger.info(f"Enhanced training curves saved to {save_path}")
     
     def train(self, dataloader: DataLoader, resume: bool = True) -> None:
         """
-        Main training loop
+        Main training loop with integrated analysis
         
         Args:
             dataloader: Training data loader
             resume: Whether to resume from checkpoint
         """
-        self.logger.info("Starting GAN training...")
+        self.logger.info("Starting enhanced GAN training with performance analysis...")
         self.logger.info(f"Device: {self.device}")
         self.logger.info(f"Batch size: {self.batch_size}")
         self.logger.info(f"Number of epochs: {self.num_epochs}")
+        self.logger.info(f"Analysis enabled: {self.enable_analysis}")
         
         # Load checkpoint if resuming
         start_epoch = 0
@@ -466,6 +619,13 @@ class GANTrainer:
             # Log progress
             self.logger.info(f"Epoch {epoch + 1}: D_loss = {avg_d_loss:.4f}, G_loss = {avg_g_loss:.4f}")
             
+            # Performance analysis at specified intervals
+            if self.enable_analysis and (epoch + 1) % self.analysis_interval == 0:
+                analysis_results = self.analyze_performance(epoch + 1)
+                if analysis_results:
+                    self.logger.info(f"Analysis - Silhouette: {analysis_results.get('silhouette_score', 0):.4f}, "
+                                   f"Avg Dispersion: {analysis_results.get('avg_dispersion', 0):.4f}")
+            
             # Visualize progress
             if (epoch + 1) % 100 == 0:
                 self.visualize_progress(epoch + 1)
@@ -475,16 +635,45 @@ class GANTrainer:
                 self.save_checkpoint(epoch + 1)
                 self.plot_training_curves()
         
-        # Final checkpoint and visualization
+        # Final checkpoint and analysis
         self.save_checkpoint(self.num_epochs)
         self.plot_training_curves()
         self.visualize_progress(self.num_epochs)
         
-        self.logger.info("Training completed!")
+        # Final comprehensive analysis
+        if self.enable_analysis:
+            self.logger.info("Running final comprehensive performance analysis...")
+            try:
+                silhouette_scores, dispersion_by_epoch = self.performance_analyzer.run_complete_analysis(
+                    save_dir=os.path.join(self.results_dir, "final_analysis/")
+                )
+                self.logger.info("Final analysis completed successfully!")
+            except Exception as e:
+                self.logger.warning(f"Final analysis failed: {e}")
+        
+        self.logger.info("Enhanced training completed!")
     
-    def generate_augmented_data(self, 
-                              target_class: int, 
-                              num_samples: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def run_post_training_analysis(self, save_dir: Optional[str] = None) -> Tuple[Dict[int, float], Dict[int, list]]:
+        """
+        Run comprehensive post-training analysis
+        
+        Args:
+            save_dir: Directory to save analysis results
+            
+        Returns:
+            Tuple of (silhouette_scores, dispersion_by_epoch)
+        """
+        if not self.enable_analysis:
+            raise ValueError("Performance analysis is disabled. Set enable_analysis=True in config.")
+        
+        if save_dir is None:
+            save_dir = os.path.join(self.results_dir, "post_training_analysis/")
+        
+        self.logger.info("Running comprehensive post-training analysis...")
+        
+        return self.performance_analyzer.run_complete_analysis(save_dir=save_dir)
+    
+    def generate_augmented_data(self, target_class: int, num_samples: int) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Generate augmented data for a specific class
         
@@ -567,6 +756,12 @@ class GANTrainer:
         """Get the trained discriminator"""
         return self.discriminator
     
+    def get_performance_analyzer(self) -> GANPerformanceAnalyzer:
+        """Get the performance analyzer"""
+        if not self.enable_analysis:
+            raise ValueError("Performance analysis is disabled")
+        return self.performance_analyzer
+    
     def get_history(self) -> Dict[str, list]:
-        """Get training history"""
+        """Get training history including analysis results"""
         return self.history
