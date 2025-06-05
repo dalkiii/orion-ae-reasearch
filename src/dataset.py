@@ -471,6 +471,7 @@ def print_class_distribution(labels: np.ndarray, title: str = "Class Distributio
 def get_transforms() -> transforms.Compose:
     """Get standard image transforms for scalogram data"""
     return transforms.Compose([
+        transforms.Lambda(lambda x: Image.fromarray(x.astype(np.uint8)) if isinstance(x, np.ndarray) else x),
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
