@@ -41,7 +41,7 @@ class ResultsEvaluator:
         # Create heatmap
         sns.heatmap(confusion_matrix, 
                    annot=True, 
-                   fmt='d', 
+                #    fmt='d', 
                    cmap='Blues',
                    xticklabels=self.class_names,
                    yticklabels=self.class_names)

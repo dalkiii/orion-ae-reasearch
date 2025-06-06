@@ -336,7 +336,7 @@ def run_multiple_experiments(config: ExperimentConfig,
         
         # Save individual run results
         run_results_path = os.path.join(config.results_dir, f"run_{run_id + 1}_results.json")
-        save_results_json(results, run_results_path)
+        # save_results_json(results, run_results_path)
         
         all_results.append(results)
         

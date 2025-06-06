@@ -471,10 +471,11 @@ def print_class_distribution(labels: np.ndarray, title: str = "Class Distributio
 def get_transforms() -> transforms.Compose:
     """Get standard image transforms for scalogram data"""
     return transforms.Compose([
-        transforms.Lambda(lambda x: Image.fromarray(x.astype(np.uint8)) if isinstance(x, np.ndarray) else x),
+        transforms.Lambda(lambda x: x.squeeze(-1) if isinstance(x, np.ndarray) and x.ndim == 3 else x),  # (H,W,1) → (H,W)
+        transforms.Lambda(lambda x: Image.fromarray(x.astype(np.uint8), mode='L') if isinstance(x, np.ndarray) else x),  # Grayscale PIL
+        transforms.Grayscale(num_output_channels=3),  # Grayscale → RGB
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
 
