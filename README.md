@@ -114,19 +114,7 @@ python scripts/run_classification.py
 ```bash
 # Use a specific GAN checkpoint for data augmentation
 python scripts/run_classification.py \
-    --gan-checkpoint ./checkpoints/netG_epoch_150.pth
-
-# With custom augmentation strategy
-python scripts/run_classification.py \
-    --gan-checkpoint ./checkpoints/netG_epoch_150.pth \
-    --augmentation-strategy balance
-
-# Custom GAN parameters
-python scripts/run_classification.py \
-    --gan-checkpoint ./checkpoints/netG_epoch_150.pth \
-    --gan-latent-dim 256 \
-    --gan-d-model-dim 256 \
-    --augmentation-strategy oversample
+    --gan-checkpoint ./checkpoints/gan/netG_epoch_150.pth
 ```
 
 #### Multiple GAN Checkpoint Evaluation
@@ -136,12 +124,5 @@ Evaluate classification performance across different GAN training epochs to find
 ```bash
 # Evaluate all checkpoints in a directory
 python scripts/run_classification.py \
-    --gan-checkpoint-dir ./checkpoints
-
-# Custom evaluation settings
-python scripts/run_classification.py \
-    --gan-checkpoint-dir ./checkpoints \
-    --checkpoint-interval 30 \
-    --num-runs 3 \
-    --results-dir ./results/gan_evaluation
+    --gan-checkpoint-dir ./checkpoints/gan
 ```

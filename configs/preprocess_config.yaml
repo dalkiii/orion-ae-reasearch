@@ -1,6 +1,6 @@
 preprocessing:
   # Target sensors to process
-  target_sensors: ["A", "B", "C"]
+  target_sensors: ["B"]
   
   # Target measurement series to process
   target_series:

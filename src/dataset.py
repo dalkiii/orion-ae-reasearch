@@ -136,8 +136,18 @@ class ScalogramDataset(Dataset):
                 # Process each sample in the file
                 for i in range(data.shape[0]):
                     sample = data[i]
-                    processed_sample = self._process_numpy_sample(sample)
-                    all_samples[class_label].append((processed_sample, class_label))
+                    # processed_sample = self._process_numpy_sample(sample)
+                    # all_samples[class_label].append((processed_sample, class_label))
+
+                    if self.data_format == "classification":
+                        # Convert to PIL Image for classification
+                        processed_sample = self._normalize_sample(sample)
+                        sample_image = Image.fromarray(processed_sample.astype(np.uint8)).convert('RGB')
+                        all_samples[class_label].append((sample_image, class_label))
+                    else:
+                        # Keep as numpy array for GAN
+                        processed_sample = self._process_numpy_sample(sample)
+                        all_samples[class_label].append((processed_sample, class_label))
                     
             except Exception as e:
                 print(f"Error loading {file_path}: {e}")
@@ -471,12 +481,17 @@ def print_class_distribution(labels: np.ndarray, title: str = "Class Distributio
 def get_transforms() -> transforms.Compose:
     """Get standard image transforms for scalogram data"""
     return transforms.Compose([
-        transforms.Lambda(lambda x: x.squeeze(-1) if isinstance(x, np.ndarray) and x.ndim == 3 else x),  # (H,W,1) → (H,W)
-        transforms.Lambda(lambda x: Image.fromarray(x.astype(np.uint8), mode='L') if isinstance(x, np.ndarray) else x),  # Grayscale PIL
-        transforms.Grayscale(num_output_channels=3),  # Grayscale → RGB
         transforms.Resize((224, 224)),
         transforms.ToTensor(),
     ])
+
+    # return transforms.Compose([
+    #     transforms.Lambda(lambda x: x.squeeze(-1) if isinstance(x, np.ndarray) and x.ndim == 3 else x),  # (H,W,1) → (H,W)
+    #     transforms.Lambda(lambda x: Image.fromarray(x.astype(np.uint8), mode='L') if isinstance(x, np.ndarray) else x),  # Grayscale PIL
+    #     transforms.Grayscale(num_output_channels=3),  # Grayscale → RGB
+    #     transforms.Resize((224, 224)),
+    #     transforms.ToTensor(),
+    # ])
 
 
 def create_datasets(root_dir: str, 
